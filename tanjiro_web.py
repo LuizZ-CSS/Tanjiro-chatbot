@@ -129,24 +129,45 @@ def clear_history():
 def create_web_interface():
     """Create and configure the web interface using Gradio"""
     
-    # CSS for custom styling
-    css = """
-    .gradio-container {
-        font-family: 'Roboto', sans-serif;
-    }
-    footer {display: none !important;}
-    .chatbot .user {
-        background-color: #e6f7ff;
-    }
-    .chatbot .bot {
-        background-color: #ffe6e6;
-    }
-    """
-    
     # Create the interface with individual components
-    with gr.Blocks(css=css, title="Chat with Tanjiro") as interface:
+    with gr.Blocks() as interface:
         gr.Markdown("## Chat with Tanjiro from Demon Slayer")
-        gr.Markdown("Talk with Kamado Tanjiro from Demon Slayer! Type 'history' to see your conversation history. Type 'interests' to see what Tanjiro thinks you're interested in.")
+        
+        # Add CSS as a separate stylesheet
+        gr.Markdown(f"""
+        <style>
+        .gradio-container {{
+            font-family: 'Roboto', sans-serif;
+        }}
+        footer {{display: none !important;}}
+        .chatbot .user {{
+            background-color: #e6f7ff;
+        }}
+        .chatbot .bot {{
+            background-color: #ffe6e6;
+        }}
+        img {{
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 10px;
+            margin: 10px 0;
+            display: block;
+        }}
+        .message-image {{
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }}
+        </style>
+        """)
+        
+        gr.Markdown("""Talk with Kamado Tanjiro from Demon Slayer!
+        - Type 'history' to see your conversation history
+        - Type 'interests' to see what Tanjiro thinks you're interested in
+        - Type 'meme [topic]' to request a specific meme (e.g., 'meme nezuko')
+        - Tanjiro will occasionally share memes related to your conversation!
+        """)
         
         chatbot = gr.Chatbot(label="Conversation with Tanjiro")
         msg = gr.Textbox(
@@ -170,17 +191,23 @@ def create_web_interface():
         )
         
         # Set up the interaction
-        msg.submit(respond, [msg, chatbot], [chatbot, msg])
-        clear.click(clear_history, None, [chatbot, msg], queue=False)
+        msg.submit(fn=respond, inputs=[msg, chatbot], outputs=[chatbot, msg])
+        clear.click(fn=clear_history, inputs=None, outputs=[chatbot, msg], queue=False)
         
     return interface
 
 # Launch the web interface
 if __name__ == "__main__":
+    # Debug API key status
+    if api_key:
+        print("API key loaded successfully")
+    else:
+        print("Warning: No API key found")
+        
     web_interface = create_web_interface()
     web_interface.launch(
-        server_name="0.0.0.0",  # Makes it accessible externally
-        server_port=7860,       # Default Gradio port
-        share=True,             # Creates a temporary public URL
-        inbrowser=True          # Opens in browser automatically
+        server_name="127.0.0.1",  # Use localhost instead of 0.0.0.0 
+        server_port=7861,         # Use port 7861 instead of 7860
+        share=False,              # Don't create a public URL
+        inbrowser=True            # Opens in browser automatically
     ) 

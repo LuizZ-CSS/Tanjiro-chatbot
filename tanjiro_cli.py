@@ -26,7 +26,8 @@ class TanjiroChatbot:
             print("\nWarning: No API key provided!")
             print("Using placeholder or attempting to read from .env.example")
         
-        self.client = openai.OpenAI(api_key=api_key)
+        # Use older openai API style
+        openai.api_key = api_key
         self.memory_agent = memory_agent
         
         self.system_prompt = """You are Kamado Tanjiro from Demon Slayer. You are kind, determined, and always willing to help others. 
@@ -58,14 +59,14 @@ class TanjiroChatbot:
         
         try:
             # Generate response using OpenAI API
-            response = self.client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=messages,
                 temperature=0.7,
                 max_tokens=500
             )
             
-            return response.choices[0].message.content.strip()
+            return response.choices[0].message['content'].strip()
             
         except Exception as e:
             if "auth" in str(e).lower() or "api key" in str(e).lower():

@@ -21,7 +21,8 @@ class MemoryAgent:
                  cache_file: str = "conversation_cache.json"):
         """Initialize the Memory Agent with API key and cache settings"""
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        self.client = openai.OpenAI(api_key=self.api_key)
+        # Use older openai API style
+        openai.api_key = self.api_key  # Set the API key globally
         self.max_entries = max_entries
         self.cache_file = cache_file
         self.cache = deque(maxlen=max_entries)
@@ -110,7 +111,7 @@ class MemoryAgent:
             """
             
             # Make API call
-            response = self.client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 temperature=0.2,
                 messages=[
@@ -121,7 +122,7 @@ class MemoryAgent:
             )
             
             # Parse the response
-            analysis = json.loads(response.choices[0].message.content)
+            analysis = json.loads(response.choices[0].message['content'])
             
             # Store the full analysis for later use
             self.last_analysis = analysis
