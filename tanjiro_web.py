@@ -25,7 +25,7 @@ current_memes = []
 current_meme_index = 0
 current_meme_topic = ""
 
-# -------- Utility Functions --------
+# --- Utility Functions ---
 def clean_reddit_url(url):
     if "preview.redd.it" in url:
         direct_url = url.split("?")[0].replace("preview.redd.it", "i.redd.it")
@@ -35,7 +35,6 @@ def clean_reddit_url(url):
     return url
 
 def is_valid_reddit_image_url(url):
-    """Returns True if the image URL is safe to use (not external or blocked)"""
     invalid_hosts = ["external-preview.redd.it", "external-i.redd.it"]
     return all(host not in url for host in invalid_hosts)
 
@@ -77,29 +76,25 @@ def format_interests_for_display(analysis):
     result = "📚 **Tanjiro's Understanding of Your Interests**:\n\n"
     if not ds and not general:
         return result + "_I haven't identified any specific topics yet._"
-
     if ds:
         result += "🔸 **Demon Slayer Topics**:\n"
         for topic, weight in sorted(ds.items(), key=lambda x: x[1], reverse=True):
             stars = "★" * int(weight)
             result += f"- {topic}: {stars} ({weight})\n"
-
     if general:
         result += "\n🔹 **General Topics**:\n"
         for topic, weight in sorted(general.items(), key=lambda x: x[1], reverse=True):
             stars = "★" * int(weight)
             result += f"- {topic}: {stars} ({weight})\n"
-
     if "summary" in analysis:
         result += f"\n🧠 **Summary**:\n{analysis['summary']}"
     return result
 
-# -------- Main Chat Logic --------
+# --- Core Chat Logic ---
 def respond(message, chat_history):
-    global current_memes, current_meme_index, current_meme_topic
-
+    global current_memes, current_meme_index, current_meme_topic, conversation_history
     if not message.strip():
-        return chat_history, ""
+        return chat_history, gr.update(value="")
 
     if message.lower() == "interests":
         try:
@@ -108,7 +103,8 @@ def respond(message, chat_history):
         except Exception as e:
             response = f"Error analyzing interests: {str(e)}"
         chat_history.append((message, response))
-        return chat_history, ""
+        conversation_history.append((message, response))
+        return chat_history, gr.update(value="")
 
     if message.lower().startswith("meme "):
         topic = message[5:].strip().lstrip("#")
@@ -116,59 +112,107 @@ def respond(message, chat_history):
         try:
             current_memes = meme_searcher.search_memes(topic, limit=5)
             if not current_memes:
-                chat_history.append((message, f"No memes found for **{topic}**."))
-                return chat_history, ""
+                response = f"No memes found for **{topic}**."
+                chat_history.append((message, response))
+                conversation_history.append((message, response))
+                return chat_history, gr.update(value="")
             meme = current_memes[0]
             cleaned_url = clean_reddit_url(meme.url)
             path = download_image(cleaned_url)
             base64_img = image_to_base64(path) if path else None
-
             response_text = f"**{meme.title}**\nSource: {meme.source or 'Reddit'}"
             if base64_img:
-                html = f"{response_text}<br><img src='{base64_img}' alt='meme'/>"
+                html = f"{response_text}<br><img src='{base64_img}' alt='meme' style='max-width:100%'/>"
                 chat_history.append((message, html))
+                conversation_history.append((message, html))
             else:
-                chat_history.append((message, f"{response_text}\n{cleaned_url}"))
+                response = f"{response_text}\n{cleaned_url}"
+                chat_history.append((message, response))
+                conversation_history.append((message, response))
         except Exception as e:
-            chat_history.append((message, f"Error loading meme: {str(e)}"))
-        return chat_history, ""
+            response = f"Error loading meme: {str(e)}"
+            chat_history.append((message, response))
+            conversation_history.append((message, response))
+        return chat_history, gr.update(value="")
 
-    # Normal conversation
     try:
         memory_agent.record_interaction(message, None)
         current_convo = [(u, a) for u, a in chat_history]
         reply = tanjiro.generate_response(message, current_convo)
         memory_agent.record_interaction(message, reply)
         chat_history.append((message, reply))
-        return chat_history, ""
+        conversation_history.append((message, reply))
+        return chat_history, gr.update(value="")
     except Exception as e:
         error = f"Tanjiro had trouble replying: {str(e)}"
         chat_history.append((message, error))
-        return chat_history, ""
+        conversation_history.append((message, error))
+        return chat_history, gr.update(value="")
 
 def clear_history():
+    global conversation_history
+    conversation_history = []
     return [], ""
 
-# -------- Gradio UI --------
+# --- UI Layout ---
 def create_web_interface():
-    with gr.Blocks(theme=gr.themes.Soft()) as demo:
-        gr.Markdown("## 🍃 Chat with **Kamado Tanjiro** from *Demon Slayer*")
+    background_url = "https://wallpapers-clan.com/wp-content/uploads/2024/02/tanjiro-kamado-red-blue-flame-desktop-wallpaper-preview.jpg"
+    css = f"""
+    html, body {{
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        background: url('{background_url}') no-repeat center center fixed;
+        background-size: cover;
+        font-family: 'Roboto', sans-serif;
+    }}
+    .gradio-container {{
+        background-color: transparent !important;
+        padding: 0 !important;
+    }}
+    .chatbot-wrap .message {{
+        max-width: 50% !important;
+    }}
+    #reminder {{
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: 340px;
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 15px;
+        font-size: 14px;
+        overflow-y: auto;
+        line-height: 1.6;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        color: #222;
+        z-index: 10;
+    }}
+    """
 
-        gr.Markdown("""
-Talk with Kamado Tanjiro from Demon Slayer!
-
-- 📜 Type `history` to view your conversation history  
-- 🎯 Type `interests` to see what Tanjiro has learned about you  
-- 😄 Try: `meme nezuko` or `meme #tanjiro` to get themed memes  
-- 🔁 Use `next meme` and `previous meme` to navigate  
-- 🧠 Add memes using: `add meme topic | title | source | image/gif/text | url | tags`
+    with gr.Blocks(css=css) as demo:
+        gr.HTML("""
+        <div id="reminder">
+            <b>Talk with Kamado Tanjiro from Demon Slayer!</b><br><br>
+            📜 <code>history</code> – view conversation history<br>
+            🎯 <code>interests</code> – learn what Tanjiro knows about you<br>
+            😄 Try: <code>meme nezuko</code> or <code>meme #tanjiro</code><br>
+            🔁 Use <code>next meme</code> or <code>previous meme</code><br>
+            🧠 Add memes: <code>add meme topic | title | source | type | url | tags</code>
+        </div>
         """)
 
-        chatbot = gr.Chatbot(label="Conversation with Tanjiro")
-        msg = gr.Textbox(placeholder="Type your message here...", show_label=False)
-        clear = gr.Button("Clear")
+        with gr.Column():
+            chatbot = gr.Chatbot(label="Conversation with Tanjiro", elem_classes="chatbot-wrap", bubble_full_width=False)
+            msg = gr.Textbox(placeholder="Type your message here...", show_label=False, lines=1)
+            with gr.Row():
+                submit = gr.Button("Submit")
+                clear = gr.Button("Clear History")
 
         msg.submit(fn=respond, inputs=[msg, chatbot], outputs=[chatbot, msg])
+        submit.click(fn=respond, inputs=[msg, chatbot], outputs=[chatbot, msg])
         clear.click(fn=clear_history, inputs=None, outputs=[chatbot, msg], queue=False)
 
         gr.Examples(
@@ -184,13 +228,9 @@ Talk with Kamado Tanjiro from Demon Slayer!
 
     return demo
 
-# -------- Launch App --------
+
+# Launch the app
 if __name__ == "__main__":
-    print("🚀 Starting Tanjiro chatbot...")
+    print("Starting Tanjiro chatbot...")
     demo = create_web_interface()
-    demo.launch(
-        server_name="127.0.0.1",
-        server_port=7865,
-        share=False,
-        inbrowser=True
-    )
+    demo.launch(server_name="127.0.0.1", server_port=7866, share=False, inbrowser=True)
