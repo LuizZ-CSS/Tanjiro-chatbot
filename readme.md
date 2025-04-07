@@ -1,7 +1,7 @@
-🌸 Tanjiro Chatbot (Gradio UI)
+#### 🌸 Tanjiro Chatbot (Gradio UI) ####
 This project is an interactive chatbot web UI featuring Kamado Tanjiro from Demon Slayer. Users can chat with Tanjiro, explore meme content, and view contextual memory or interest-based insights derived from conversation history.
 
-🚀 Live Demo (72-hour public link):
+## 🚀 Live Demo (72-hour public link):
 👉 https://01583057abac657cf6.gradio.live
 
 🧩 Features
