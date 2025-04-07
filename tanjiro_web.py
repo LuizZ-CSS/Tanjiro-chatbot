@@ -174,10 +174,23 @@ def create_web_interface():
     .chatbot-wrap .message {{
         max-width: 50% !important;
     }}
+    #right-panel {{
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 50%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(10px);
+        padding: 20px;
+        box-sizing: border-box;
+        overflow-y: auto;
+        z-index: 2;
+    }}
     #reminder {{
         position: fixed;
-        top: 20px;
-        right: 20px;
+        bottom: 20px;
+        left: 20px;
         width: 340px;
         background: rgba(255, 255, 255, 0.5);
         backdrop-filter: blur(10px);
@@ -188,7 +201,7 @@ def create_web_interface():
         line-height: 1.6;
         box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         color: #222;
-        z-index: 10;
+        z-index: 100;
     }}
     """
 
@@ -204,33 +217,34 @@ def create_web_interface():
         </div>
         """)
 
-        with gr.Column():
+        with gr.Column(elem_id="right-panel"):
             chatbot = gr.Chatbot(label="Conversation with Tanjiro", elem_classes="chatbot-wrap", bubble_full_width=False)
             msg = gr.Textbox(placeholder="Type your message here...", show_label=False, lines=1)
             with gr.Row():
                 submit = gr.Button("Submit")
                 clear = gr.Button("Clear History")
 
-        msg.submit(fn=respond, inputs=[msg, chatbot], outputs=[chatbot, msg])
-        submit.click(fn=respond, inputs=[msg, chatbot], outputs=[chatbot, msg])
-        clear.click(fn=clear_history, inputs=None, outputs=[chatbot, msg], queue=False)
+            msg.submit(fn=respond, inputs=[msg, chatbot], outputs=[chatbot, msg])
+            submit.click(fn=respond, inputs=[msg, chatbot], outputs=[chatbot, msg])
+            clear.click(fn=clear_history, inputs=None, outputs=[chatbot, msg], queue=False)
 
-        gr.Examples(
-            examples=[
-                "Hello Tanjiro, how are you?",
-                "Tell me about Nezuko.",
-                "meme #tanjiro",
-                "meme nezuko",
-                "interests"
-            ],
-            inputs=msg
-        )
+            gr.Examples(
+                examples=[
+                    "Hello Tanjiro, how are you?",
+                    "Tell me about Nezuko.",
+                    "meme #tanjiro",
+                    "meme nezuko",
+                    "interests"
+                ],
+                inputs=msg
+            )
 
     return demo
+
 
 
 # Launch the app
 if __name__ == "__main__":
     print("Starting Tanjiro chatbot...")
     demo = create_web_interface()
-    demo.launch(server_name="127.0.0.1", server_port=7866, share=False, inbrowser=True)
+    demo.launch(server_name="127.0.0.1", server_port=7866, share=True, inbrowser=True)
