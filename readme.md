@@ -28,24 +28,27 @@ Local Caching for images and state
 
 ## 💬 Usage
 Clone the repo:
-
+```
 bash
 Copy
 Edit
 git clone https://github.com/LuizZ-CSS/Tanjiro-chatbot.git
 cd Tanjiro-chatbot
+```
 Install dependencies:
-
+```
 bash
 Copy
 Edit
 pip install -r requirements.txt
+```
 Run locally:
-
+```
 bash
 Copy
 Edit
 python tanjiro_web.py
+```
 The app will open in your browser automatically.
 
 📄 License
